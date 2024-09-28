@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Snake Tunnel Navigator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="controls">
+        <label for="speedSlider">Game Speed:</label>
+        <input type="range" id="speedSlider" min="1" max="10" value="5">
+        <label for="sensitivitySlider">Ball Sensitivity:</label>
+        <input type="range" id="sensitivitySlider" min="1" max="10" value="5">
+    </div>
+    <button id="playButton">Play</button>
+    <button id="restartButton" style="display: none;">Restart</button>
+    <div id="scoreSubmission" style="display: none;">
+        <input type="text" id="playerName" placeholder="Enter your name">
+        <button id="submitScoreButton">Submit Score</button>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>

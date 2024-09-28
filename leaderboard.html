@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Top Scores (Last 24 Hours)</h1>
+    <table id="leaderboard">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Scores will be dynamically inserted here -->
+        </tbody>
+    </table>
+    <script>
+        // Fetch the top 10 scores and display them
+        fetch('/get-leaderboard')
+            .then(response => response.json())
+            .then(data => {
+                const leaderboardTable = document.getElementById('leaderboard').querySelector('tbody');
+                data.forEach((entry, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${entry.name}</td>
+                        <td>${entry.score}</td>
+                    `;
+                    leaderboardTable.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching leaderboard:', error);
+            });
+    </script>
+</body>
+</html>
