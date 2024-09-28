@@ -2,31 +2,37 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 const speedSlider = document.getElementById('speedSlider');
-const sensitivitySlider = document.getElementById('sensitivitySlider');
+const tunnelSpeedSlider = document.getElementById('tunnelSpeedSlider');
 const restartButton = document.getElementById('restartButton');
 const playButton = document.getElementById('playButton');
 
-let ball = { x: canvas.width / 5, y: canvas.height / 2, radius: 10 };
+let ball = { x: 0, y: 0, radius: 10 };
 let tunnelWidth = 150;
 let tunnelCurves = [];
 let score = 0;
 let gameOver = false;
-let speed = 2.5;
-let sensitivity = 5;
+let ballSpeed = 5;
+let tunnelSpeed = 1.5;
 let pointCounterPosition = { x: 10, y: 50 };
 let touchStartY = 0;
 let scrollDelta = 0;
+let gamepad = null; // For tracking gamepad input
 
 // Resize canvas to fit the screen adaptively
 function resizeCanvas() {
     canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    ball.x = canvas.width / 5;
-    ball.y = canvas.height / 2;
+    canvas.height = window.innerHeight * 0.8; // Adjust height to fit mobile view better
+    resetBallPosition();
 }
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// Reset ball position based on canvas size
+function resetBallPosition() {
+    ball.x = canvas.width / 5;
+    ball.y = canvas.height / 2;
+}
 
 // Draw the wavy tunnel
 function drawTunnel() {
@@ -56,7 +62,7 @@ function drawTunnel() {
 
 // Generate smoother, wavy tunnel curves
 function generateTunnelCurves() {
-    tunnelCurves = tunnelCurves.slice(-canvas.width / 10);
+    tunnelCurves = tunnelCurves.slice(-Math.ceil(canvas.width / 10));
     let lastCurve = tunnelCurves[tunnelCurves.length - 1] || canvas.height / 2;
     let newCurve = lastCurve + Math.sin(score / 10) * 10 + (Math.random() - 0.5) * 15;
     tunnelCurves.push(newCurve);
@@ -72,7 +78,7 @@ function drawBall() {
 
 // Draw the score counter
 function drawScore() {
-    ctx.font = '48px Arial';
+    ctx.font = '24px Arial';
     ctx.fillStyle = 'white';
     ctx.fillText(score.toString(), pointCounterPosition.x, pointCounterPosition.y);
 }
@@ -97,34 +103,28 @@ function update() {
     score += 1;
 }
 
-// Handle gamepad input
-function handleGamepad() {
-    const gp = navigator.getGamepads()[0];
-    if (gp) {
-        const yAxis = gp.axes[1];
-        ball.y += yAxis * sensitivity;
-    }
-}
-
-// Handle mouse scroll input
-function handleMouseScroll(event) {
-    scrollDelta += event.deltaY * 0.1;
-}
-
-// Add event listener for mouse wheel scroll
-window.addEventListener('wheel', handleMouseScroll);
-
-// Update ball position using touch, scroll, and gamepad input
+// Update ball position using mouse wheel, touch, and gamepad input
 function updateBallPosition() {
-    handleGamepad();
-    ball.y += scrollDelta * sensitivity;
-    scrollDelta = 0;
+    handleGamepadInput(); // Handle gamepad input if connected
+    ball.y += scrollDelta * (ballSpeed / 5); // Adjust ball movement speed based on slider value
+    scrollDelta = 0; // Reset scrollDelta after applying
+}
+
+// Handle gamepad input
+function handleGamepadInput() {
+    const gamepads = navigator.getGamepads();
+    if (gamepads[0]) {
+        gamepad = gamepads[0];
+        const yAxis = gamepad.axes[1]; // Y-axis on most controllers
+        ball.y += yAxis * ballSpeed; // Adjust sensitivity for better control
+    }
 }
 
 // Show the restart button
 function showRestartButton() {
     restartButton.style.display = 'block';
     speedSlider.parentElement.style.display = 'block';
+    tunnelSpeedSlider.parentElement.style.display = 'block';
 }
 
 // Show the score submission form
@@ -136,6 +136,7 @@ function showScoreSubmissionForm() {
 function hideRestartButton() {
     restartButton.style.display = 'none';
     speedSlider.parentElement.style.display = 'none';
+    tunnelSpeedSlider.parentElement.style.display = 'none';
     document.getElementById('scoreSubmission').style.display = 'none';
 }
 
@@ -143,9 +144,9 @@ function hideRestartButton() {
 function restartGame() {
     gameOver = false;
     score = 0;
-    ball = { x: canvas.width / 5, y: canvas.height / 2, radius: 10 };
+    resetBallPosition();
     tunnelCurves = [];
-    for (let i = 0; i < canvas.width / 10; i++) {
+    for (let i = 0; i < Math.ceil(canvas.width / 10); i++) {
         tunnelCurves.push(canvas.height / 2);
     }
     hideRestartButton();
@@ -156,22 +157,24 @@ function restartGame() {
 function startGame() {
     playButton.style.display = 'none';
     speedSlider.parentElement.style.display = 'flex';
+    tunnelSpeedSlider.parentElement.style.display = 'flex';
     restartGame();
 }
 
 playButton.addEventListener('click', startGame);
 restartButton.addEventListener('click', restartGame);
 
+// Adjust ball and tunnel speeds based on slider inputs
 speedSlider.addEventListener('input', (e) => {
-    speed = e.target.value / 2;
+    ballSpeed = e.target.value;
 });
 
-sensitivitySlider.addEventListener('input', (e) => {
-    sensitivity = e.target.value / 1.5;
+tunnelSpeedSlider.addEventListener('input', (e) => {
+    tunnelSpeed = e.target.value / 2;
 });
 
 // Initialize tunnel curves
-for (let i = 0; i < canvas.width / 10; i++) {
+for (let i = 0; i < Math.ceil(canvas.width / 10); i++) {
     tunnelCurves.push(canvas.height / 2);
 }
 
@@ -183,19 +186,24 @@ canvas.addEventListener('touchstart', (e) => {
 canvas.addEventListener('touchmove', (e) => {
     const touchY = e.touches[0].clientY;
     const deltaY = touchY - touchStartY;
-    ball.y += deltaY * (sensitivity / 5);
+    ball.y += deltaY * (ballSpeed / 5);
     touchStartY = touchY;
+});
+
+// Handle mouse scroll input
+window.addEventListener('wheel', (e) => {
+    scrollDelta += e.deltaY * 0.1; // Adjust sensitivity if needed
 });
 
 // Game loop function to control the gameplay
 function gameLoop() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Ensure canvas is cleared
     drawTunnel();
     drawBall();
     drawScore();
     update();
     if (!gameOver) {
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(gameLoop); // Continue looping if not game over
     } else {
         ctx.font = '48px Arial';
         ctx.fillStyle = 'red';
@@ -211,7 +219,7 @@ function submitScore() {
         return;
     }
 
-    // Sending score to the server
+    // Sending score to the server (example URL; needs backend setup)
     fetch('/submit-score', {
         method: 'POST',
         headers: {
@@ -235,6 +243,5 @@ document.getElementById('submitScoreButton').addEventListener('click', submitSco
 
 // Detect joystick connection
 window.addEventListener('gamepadconnected', (e) => {
-    gamepad = e.gamepad;
-    console.log('Gamepad connected:', gamepad);
+    console.log('Gamepad connected:', e.gamepad);
 });
